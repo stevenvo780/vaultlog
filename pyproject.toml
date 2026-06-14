@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vaultlog"
+version = "0.4.0"
+description = "Vaultlog: encrypted terminal journal with CLI, TUI, and Git backup (AES-GCM + PBKDF2)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["journal", "diary", "encryption", "aes-gcm", "pbkdf2", "tui", "cli", "privacy"]
+dependencies = [
+  "cryptography>=48,<49",
+  "textual>=8.2,<9",
+]
+
+[project.scripts]
+vaultlog = "vaultlog.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["vaultlog*"]

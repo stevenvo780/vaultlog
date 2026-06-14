@@ -1,0 +1,46 @@
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Vault data must NEVER live in the code repo. Keep entries in a separate
+# private repo. These patterns block accidental commits of journal data.
+.vaultlog/
+.diario/
+*.vault
+manifest.enc
+config.json
+entries/
+.vaultlog.backup-*/
+.vaultlog.rotated-out-*/
+.vaultlog.tmp-*/
+
+# Plaintext / recovery artifacts
+recovery-note.txt
+*recovery-note*.txt
+*.plaintext
+*.decrypted
+exports/
+
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store

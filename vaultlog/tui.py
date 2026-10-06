@@ -332,7 +332,8 @@ class JournalApp(App[None]):
             return
         self._save_current_entry(silent=True)
         self.state.locked = True
-        self.state.shadow_buffer = self.editor.text
+        if not self.state.camouflage:
+            self.state.shadow_buffer = self.editor.text
         self._replace_editor_text("// session locked //\nEnter the master password to continue.")
         self.editor.read_only = True
         self.editor_title.update("vault://locked")
@@ -344,15 +345,10 @@ class JournalApp(App[None]):
         if self.state.locked:
             return
         if not self.state.camouflage:
+            self.state.dirty = self.state.dirty or self.editor.text != self.state.shadow_buffer
             self.state.camouflage = True
             self.state.shadow_buffer = self.editor.text
-            slug = "buffer"
-            if self.state.current_entry_id:
-                slug = self.session.get_entry(self.state.current_entry_id).slug
-            self._replace_editor_text(generate_camouflage(slug))
-            self.editor.read_only = True
-            self.editor_title.update(f"src/runtime/{slug}.py")
-            self.meta.update("Camouflage mode active")
+            self._show_camouflage()
             self._update_status("panic mode // hidden")
             return
         self.state.camouflage = False
@@ -360,6 +356,15 @@ class JournalApp(App[None]):
         self.editor.read_only = False
         self._refresh_current_metadata()
         self._update_status("panic mode disabled")
+
+    def _show_camouflage(self) -> None:
+        slug = "buffer"
+        if self.state.current_entry_id:
+            slug = self.session.get_entry(self.state.current_entry_id).slug
+        self._replace_editor_text(generate_camouflage(slug))
+        self.editor.read_only = True
+        self.editor_title.update(f"src/runtime/{slug}.py")
+        self.meta.update("Camouflage mode active")
 
     def action_focus_entries(self) -> None:
         self.entries_view.focus()
@@ -399,9 +404,12 @@ class JournalApp(App[None]):
             self.push_screen(PromptScreen("Contraseña maestra", password=True), self._handle_unlock_attempt)
             return
         self.state.locked = False
-        self.editor.read_only = False
-        self._replace_editor_text(self.state.shadow_buffer)
-        self._refresh_current_metadata()
+        if self.state.camouflage:
+            self._show_camouflage()
+        else:
+            self.editor.read_only = False
+            self._replace_editor_text(self.state.shadow_buffer)
+            self._refresh_current_metadata()
         self._update_status("unlocked")
         self.editor.focus()
 
@@ -441,11 +449,12 @@ class JournalApp(App[None]):
         self.editor.focus()
 
     def _save_current_entry(self, silent: bool = False) -> None:
-        if self.state.current_entry_id is None or self.state.locked or self.state.camouflage:
+        if self.state.current_entry_id is None or self.state.locked:
             return
-        if not self.state.dirty and self.editor.text == self.state.shadow_buffer:
+        body = self.state.shadow_buffer if self.state.camouflage else self.editor.text
+        if not self.state.dirty and body == self.state.shadow_buffer:
             return
-        record = self.session.update_entry(self.state.current_entry_id, self.editor.text)
+        record = self.session.update_entry(self.state.current_entry_id, body)
         self.state.dirty = False
         self.state.shadow_buffer = record.body
         if not silent:
@@ -456,6 +465,8 @@ class JournalApp(App[None]):
         self._update_status(f"saved // {record.updated_at}")
 
     def _refresh_current_metadata(self) -> None:
+        if self.state.camouflage:
+            return
         if not self.state.current_entry_id:
             self.meta.update("No active entry")
             return
